@@ -8,9 +8,20 @@ import org.openstreetmap.gui.jmapviewer.Coordinate;
 
 public class OgfMapExtractor {
     public OgfMapExtractor() {
-        Preset[] listPresets = {new Preset("East Uletha", 63.140, 72.548, 175.702, 23.016)};
+        Preset[] listPresets = {
+            new Preset("East Uletha", 63.140, 72.548, 175.702, 23.016),
+            new Preset("East Uletha Minor", 96.895, 47.904, 150.051, 25.247),
+            new Preset("Tarephia", -17.3502, 35.4212, 58.8065, -26.8107),
+            new Preset("World", -18.1100, 80.6825, 179.8627, -75.9798)
+        };
 
-        JFrame frame = new JFrame("OpenGeofiction Map Extractor");
+        String[] namePresets = new String[listPresets.length + 1];
+        namePresets[listPresets.length] = "Custom Coordinates";
+        for (int i = 0; i < listPresets.length; i++){
+            namePresets[i] = listPresets[i].getName();
+        }
+
+        JFrame frame = new JFrame("Capture OpenGeofiction");
         BoundingBoxMap map = new BoundingBoxMap();
 
         JTextField x1 = new JTextField(8), y1 = new JTextField(8);
@@ -22,11 +33,11 @@ public class OgfMapExtractor {
         for (String label : new String[]{"Presets", "North X", "North Y", "South X", "South Y", ""})
             panel.add(new JLabel(label));
 
-        JComboBox presets = new JComboBox();
+        JComboBox presets = new JComboBox(namePresets);
         panel.add(presets);
 
         for (JTextField field : new JTextField[]{x1, y1, x2, y2})
-            panel.add(field);
+        panel.add(field);
 
         panel.add(submit);
 
@@ -34,8 +45,7 @@ public class OgfMapExtractor {
             x1.setText("" + c[3]);
             y1.setText("" + c[2]);
             x2.setText("" + c[1]);
-            y2.setText("" + c[0]);
-        });
+            y2.setText("" + c[0]);});
 
         submit.addActionListener(e -> {
             try {
@@ -51,8 +61,6 @@ public class OgfMapExtractor {
         });
 
         map.setDisplayPosition(new Coordinate(36, 129), 11);
-
-
 
         frame.add(map, BorderLayout.CENTER);
         frame.add(panel, BorderLayout.SOUTH);
