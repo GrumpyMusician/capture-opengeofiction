@@ -3,6 +3,8 @@ package com.captureogf;
 
 import javax.swing.*;
 import javax.swing.border.Border;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import java.awt.*;
 import org.openstreetmap.gui.jmapviewer.Coordinate;
@@ -27,6 +29,9 @@ public class OgfMapExtractor {
         JButton next = new JButton("Next");
         JButton prev = new JButton("Previous");
 
+        /*
+            BBOX PANEL
+        */
         JPanel bboxPanel = new JPanel(new GridLayout(2, 7, 5, 5));
         for (String label : new String[]{"Presets", "North X", "North Y", "South X", "South Y", "Input Bounds ", "Next"}){
             bboxPanel.add(new JLabel(label));
@@ -42,20 +47,34 @@ public class OgfMapExtractor {
         bboxPanel.add(next);
         bboxPanel.setBorder(border);
 
-        JPanel configPanel = new JPanel(new GridLayout(2, 6, 5, 5));
-        for (String label : new String[]{"Previous", "Zoom", "Export Folder", "Number of Rows", "Number of Columns", "Next"}){
+        /*
+            CONFIG PANEL
+        */
+        JPanel configPanel = new JPanel(new GridLayout(2, 7, 5, 5));
+        JSlider zoom = new JSlider(0, 19);
+        JLabel zoomLabel = new JLabel("Zoom: " + String.valueOf(zoom.getValue()));
+        configPanel.add(new JLabel("Previous"));
+        configPanel.add(zoomLabel);
+        for (String label : new String[]{"Export Folder", "Export Config", "Number of Rows", "Number of Columns", "Next"}){
             configPanel.add(new JLabel(label));
         }
-        JSlider zoom = new JSlider(0, 19);
-        zoom.setMajorTickSpacing(5);
-        zoom.setMinorTickSpacing(1);
-        zoom.setPaintTicks(true);
-        zoom.setPaintLabels(true);
+        
         configPanel.add(prev);
         configPanel.add(zoom);
+        String[] configSet = {"One Image", "Grid"};
+        JComboBox<String> exportConfig = new JComboBox<>(configSet);
+        JTextField numRows = new JTextField("1"), numCols = new JTextField("1");
+        numRows.setEnabled(false);
+        numCols.setEnabled(false);
+        configPanel.add(exportConfig);
+        configPanel.add(numRows);
+        configPanel.add(numCols);
+        
         configPanel.setBorder(border);
 
-
+        /* 
+            LISTENERS
+        */
         map.setBoundingBoxListener(c -> {
             x1.setText("" + c[3]);
             y1.setText("" + c[2]);
@@ -99,9 +118,17 @@ public class OgfMapExtractor {
         y2.addActionListener(e -> submitCoordinates(x1, y1, x2, y2));
 
         submit.addActionListener(e -> submitCoordinates(x1, y1, x2, y2));
+
+        zoom.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                zoomLabel.setText("Zoom: " + String.valueOf(zoom.getValue()));
+            }
+        });
         
         next.addActionListener(e -> {
             if (stage.isBoundingStage()){
+                configPanel.add(next);
                 frame.remove(bboxPanel);
                 frame.add(configPanel, BorderLayout.SOUTH);
                 frame.revalidate();
@@ -115,6 +142,7 @@ public class OgfMapExtractor {
 
         prev.addActionListener(e -> {
             if (stage.isConfigStage()){
+                bboxPanel.add(next);
                 frame.remove(configPanel);
                 frame.add(bboxPanel, BorderLayout.SOUTH);
                 frame.revalidate();
@@ -126,8 +154,10 @@ public class OgfMapExtractor {
             stage.prevStage();
         });
 
+        /* 
+            FINAL STUFF
+        */
         map.setDisplayPosition(new Coordinate(36, 129), 5);
-
         frame.add(map, BorderLayout.CENTER);
         frame.add(bboxPanel, BorderLayout.SOUTH);
 
@@ -147,6 +177,14 @@ public class OgfMapExtractor {
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(frame, "Enter valid coordinates.");
         }
+    }
+
+    public void checkCoordinates(JTextField x1, JTextField y1, JTextField x2, JTextField y2){
+
+    }
+
+    public void checkGrid(JTextField value){
+
     }
 
     public static void main(String[] args) {
