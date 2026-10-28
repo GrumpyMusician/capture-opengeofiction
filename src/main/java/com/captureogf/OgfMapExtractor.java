@@ -2,6 +2,8 @@
 package com.captureogf;
 
 import javax.swing.*;
+import javax.swing.border.Border;
+
 import java.awt.*;
 import org.openstreetmap.gui.jmapviewer.Coordinate;
 
@@ -12,6 +14,7 @@ public class OgfMapExtractor {
     BoundingBoxMap map = new BoundingBoxMap();
 
     public OgfMapExtractor() {
+        int stage = 0; // 0: bbox; 1: final config; 2: export!
         Preset[] listPresets = {
             new Preset("Custom Coordinates"),
             new Preset("East Uletha", 63.140, 72.548, 175.702, 23.016),
@@ -19,26 +22,39 @@ public class OgfMapExtractor {
             new Preset("Tarephia", -17.3502, 35.4212, 58.8065, -26.8107),
             new Preset("World", -18.1100, 80.6825, 179.8627, -75.9798)
         };
-
-        JTextField x1 = new JTextField(8), y1 = new JTextField(8);
-        JTextField x2 = new JTextField(8), y2 = new JTextField(8);
-        JButton submit = new JButton("Enter Bounds");
+        
+        Border border = BorderFactory.createEmptyBorder(10, 10, 10, 10);
         JButton next = new JButton("Next");
+        JButton prev = new JButton("Previous");
 
         JPanel bboxPanel = new JPanel(new GridLayout(2, 7, 5, 5));
-
         for (String label : new String[]{"Presets", "North X", "North Y", "South X", "South Y", "Input Bounds ", "Next"}){
             bboxPanel.add(new JLabel(label));
         }
-
+        JTextField x1 = new JTextField(8), y1 = new JTextField(8);
+        JTextField x2 = new JTextField(8), y2 = new JTextField(8);
         JComboBox<Preset> presets = new JComboBox<>(listPresets);
+        JButton submit = new JButton("Enter Bounds");
         bboxPanel.add(presets);
-
         for (JTextField field : new JTextField[]{x1, y1, x2, y2})
         bboxPanel.add(field);
         bboxPanel.add(submit);
         bboxPanel.add(next);
-        bboxPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        bboxPanel.setBorder(border);
+
+        JPanel configPanel = new JPanel(new GridLayout(2, 6, 5, 5));
+        for (String label : new String[]{"Previous", "Zoom", "Export Folder", "Number of Rows", "Number of Columns", "Next"}){
+            configPanel.add(new JLabel(label));
+        }
+        JSlider zoom = new JSlider(0, 19);
+        zoom.setMajorTickSpacing(5);
+        zoom.setMinorTickSpacing(1);
+        zoom.setPaintTicks(true);
+        zoom.setPaintLabels(true);
+        configPanel.add(prev);
+        configPanel.add(zoom);
+        configPanel.setBorder(border);
+
 
         map.setBoundingBoxListener(c -> {
             x1.setText("" + c[3]);
@@ -83,6 +99,25 @@ public class OgfMapExtractor {
         y2.addActionListener(e -> submitCoordinates(x1, y1, x2, y2));
 
         submit.addActionListener(e -> submitCoordinates(x1, y1, x2, y2));
+        
+        next.addActionListener(e -> {
+            if (stage == 0){
+                frame.remove(bboxPanel);
+                frame.add(configPanel, BorderLayout.SOUTH);
+                frame.revalidate();
+                frame.repaint();
+            } else {
+
+            }
+        });
+
+        prev.addActionListener(e -> {
+            if (stage == 1){
+
+            } else {
+
+            }
+        });
 
         map.setDisplayPosition(new Coordinate(36, 129), 5);
 
