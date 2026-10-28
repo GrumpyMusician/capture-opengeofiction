@@ -22,20 +22,23 @@ public class OgfMapExtractor {
 
         JTextField x1 = new JTextField(8), y1 = new JTextField(8);
         JTextField x2 = new JTextField(8), y2 = new JTextField(8);
-        JButton submit = new JButton("Submit Bounds");
+        JButton submit = new JButton("Enter Bounds");
+        JButton next = new JButton("Next");
 
-        JPanel bboxPanel = new JPanel(new GridLayout(2, 6, 5, 5));
+        JPanel bboxPanel = new JPanel(new GridLayout(2, 7, 5, 5));
 
-        for (String label : new String[]{"Presets", "North X", "North Y", "South X", "South Y", "Enter to Submit"})
+        for (String label : new String[]{"Presets", "North X", "North Y", "South X", "South Y", "Input Bounds ", "Next"}){
             bboxPanel.add(new JLabel(label));
+        }
 
         JComboBox<Preset> presets = new JComboBox<>(listPresets);
         bboxPanel.add(presets);
 
         for (JTextField field : new JTextField[]{x1, y1, x2, y2})
         bboxPanel.add(field);
-
         bboxPanel.add(submit);
+        bboxPanel.add(next);
+        bboxPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         map.setBoundingBoxListener(c -> {
             x1.setText("" + c[3]);
@@ -81,7 +84,7 @@ public class OgfMapExtractor {
 
         submit.addActionListener(e -> submitCoordinates(x1, y1, x2, y2));
 
-        map.setDisplayPosition(new Coordinate(36, 129), 11);
+        map.setDisplayPosition(new Coordinate(36, 129), 5);
 
         frame.add(map, BorderLayout.CENTER);
         frame.add(bboxPanel, BorderLayout.SOUTH);
