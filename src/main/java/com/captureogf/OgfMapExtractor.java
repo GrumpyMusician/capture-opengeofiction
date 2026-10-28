@@ -14,7 +14,7 @@ public class OgfMapExtractor {
     BoundingBoxMap map = new BoundingBoxMap();
 
     public OgfMapExtractor() {
-        int stage = 0; // 0: bbox; 1: final config; 2: export!
+        Stage stage = new Stage();
         Preset[] listPresets = {
             new Preset("Custom Coordinates"),
             new Preset("East Uletha", 63.140, 72.548, 175.702, 23.016),
@@ -66,14 +66,14 @@ public class OgfMapExtractor {
         presets.addActionListener(e -> {
             Preset selected = (Preset) presets.getSelectedItem(); 
             if (selected.getName().equals("Custom Coordinates")){
-                map.setLock(true);
+                map.setLock(false);
                 x1.setEnabled(true);
                 y1.setEnabled(true);
                 x2.setEnabled(true);
                 y2.setEnabled(true);
                 submit.setEnabled(true);
             } else {
-                map.setLock(false);
+                map.setLock(true);
                 x1.setEnabled(false);
                 y1.setEnabled(false);
                 x2.setEnabled(false);
@@ -101,22 +101,29 @@ public class OgfMapExtractor {
         submit.addActionListener(e -> submitCoordinates(x1, y1, x2, y2));
         
         next.addActionListener(e -> {
-            if (stage == 0){
+            if (stage.isBoundingStage()){
                 frame.remove(bboxPanel);
                 frame.add(configPanel, BorderLayout.SOUTH);
                 frame.revalidate();
                 frame.repaint();
+                map.setLock(true);
             } else {
 
             }
+            stage.nextStage();
         });
 
         prev.addActionListener(e -> {
-            if (stage == 1){
-
+            if (stage.isConfigStage()){
+                frame.remove(configPanel);
+                frame.add(bboxPanel, BorderLayout.SOUTH);
+                frame.revalidate();
+                frame.repaint();
+                map.setLock(false);
             } else {
 
             }
+            stage.prevStage();
         });
 
         map.setDisplayPosition(new Coordinate(36, 129), 5);

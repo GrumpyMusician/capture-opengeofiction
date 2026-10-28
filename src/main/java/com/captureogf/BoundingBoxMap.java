@@ -24,7 +24,7 @@ public class BoundingBoxMap extends JMapViewer{
     private double maxLon;
 
     private boolean hasSelection = false;
-    private boolean isUnlocked = true;
+    private boolean lock = false;
 
     private Consumer<double[]> boundingBoxListener;
 
@@ -54,7 +54,7 @@ public class BoundingBoxMap extends JMapViewer{
 
             @Override
             public void mousePressed(MouseEvent e){
-                if (!isUnlocked){
+                if (lock){
                     return;
                 }
 
@@ -238,7 +238,11 @@ public class BoundingBoxMap extends JMapViewer{
     }
 
     public void setLock(boolean lock){
-        this.isUnlocked = lock;
+        this.lock = lock;
+    }
+
+    public boolean isLocked(){
+        return this.lock;
     }
 
     public void clearSelection(){
