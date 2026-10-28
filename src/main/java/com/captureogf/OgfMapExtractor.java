@@ -1,28 +1,62 @@
+
 package com.captureogf;
 
-import javax.swing.JFrame;
-import javax.swing.SwingUtilities;
-
-import java.awt.GridBagLayout;
-import java.awt.GridBagConstraints;
-
+import javax.swing.*;
+import java.awt.*;
 import org.openstreetmap.gui.jmapviewer.Coordinate;
+
 
 public class OgfMapExtractor {
     public OgfMapExtractor() {
+        Preset[] listPresets = {new Preset("East Uletha", 63.140, 72.548, 175.702, 23.016)};
+
         JFrame frame = new JFrame("OpenGeofiction Map Extractor");
-
-        frame.setLayout(new GridBagLayout());
-        
-        GridBagConstraints gbc = new GridBagConstraints();
-
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-
         BoundingBoxMap map = new BoundingBoxMap();
+
+        JTextField x1 = new JTextField(8), y1 = new JTextField(8);
+        JTextField x2 = new JTextField(8), y2 = new JTextField(8);
+        JButton submit = new JButton("Submit Bounds");
+
+        JPanel panel = new JPanel(new GridLayout(2, 6, 5, 5));
+
+        for (String label : new String[]{"Presets", "North X", "North Y", "South X", "South Y", ""})
+            panel.add(new JLabel(label));
+
+        JComboBox presets = new JComboBox();
+        panel.add(presets);
+
+        for (JTextField field : new JTextField[]{x1, y1, x2, y2})
+            panel.add(field);
+
+        panel.add(submit);
+
+        map.setBoundingBoxListener(c -> {
+            x1.setText("" + c[3]);
+            y1.setText("" + c[2]);
+            x2.setText("" + c[1]);
+            y2.setText("" + c[0]);
+        });
+
+        submit.addActionListener(e -> {
+            try {
+                map.setBoundingBox(
+                    Double.parseDouble(y2.getText()),
+                    Double.parseDouble(x1.getText()),
+                    Double.parseDouble(y1.getText()),
+                    Double.parseDouble(x2.getText())
+                );
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(frame, "Enter valid coordinates.");
+            }
+        });
+
         map.setDisplayPosition(new Coordinate(36, 129), 11);
-        //frame.add(map, gbc);
-        
+
+
+
+        frame.add(map, BorderLayout.CENTER);
+        frame.add(panel, BorderLayout.SOUTH);
+
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(1000, 700);
         frame.setLocationRelativeTo(null);

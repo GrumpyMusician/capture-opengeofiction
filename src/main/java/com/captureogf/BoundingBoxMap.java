@@ -1,5 +1,7 @@
+
 package com.captureogf;
 
+import java.util.function.Consumer;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
@@ -23,20 +25,28 @@ public class BoundingBoxMap extends JMapViewer {
 
     private boolean hasSelection = false;
 
+    private Consumer<double[]> boundingBoxListener;
+
+    public void setBoundingBoxListener(Consumer<double[]> listener) {
+        this.boundingBoxListener = listener;
+    }
+
     public BoundingBoxMap() {
-        // FIXED: Changed {zoom} to {z} to match the replacement logic inside getTileUrl
-        AbstractOsmTileSource customTileSource = new AbstractOsmTileSource("Opengeofiction", "https://tile.opengeofiction.net/ogf-carto/{z}/{x}/{y}.png", "OGF/1.0") {
-            @Override
-            public String getTileUrl(int zoom, int tileX, int tileY) {
-                return baseUrl
+        AbstractOsmTileSource customTileSource =
+            new AbstractOsmTileSource(
+                "Opengeofiction",
+                "https://tile.opengeofiction.net/ogf-carto/{z}/{x}/{y}.png",
+                "OGF/1.0"
+            ) {
+                @Override
+                public String getTileUrl(int zoom, int tileX, int tileY) {
+                    return baseUrl
                         .replace("{z}", String.valueOf(zoom))
                         .replace("{x}", String.valueOf(tileX))
                         .replace("{y}", String.valueOf(tileY));
-            }
-            
-            // @Override public int getMaxZoom() { return 19; }
-            // @Override public int getMinZoom() { return 0; }
-        };
+                }
+            };
+
         setTileSource(customTileSource);
 
         MouseAdapter selectionHandler = new MouseAdapter() {
@@ -145,27 +155,61 @@ public class BoundingBoxMap extends JMapViewer {
                 java.awt.Color.RED,
                 null,
                 stroke,
-                org.openstreetmap.gui.jmapviewer.MapRectangleImpl
-                    .getDefaultStyle().getFont()
+                MapRectangleImpl.getDefaultStyle().getFont()
             );
 
-        selection = new MapRectangleImpl(null, null, topLeft, bottomRight, style) {
+        selection = new MapRectangleImpl(
+            null, null, topLeft, bottomRight, style
+        ) {
             @Override
-            public void paint(java.awt.Graphics g, java.awt.Point topLeft,
-                            java.awt.Point bottomRight) {
-                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            public void paint(
+                    java.awt.Graphics g,
+                    java.awt.Point topLeft,
+                    java.awt.Point bottomRight) {
+
+                java.awt.Graphics2D g2 =
+                    (java.awt.Graphics2D) g.create();
+
                 g2.setColor(new java.awt.Color(255, 0, 0, 70));
-                g2.fillRect(topLeft.x, topLeft.y,
-                            bottomRight.x - topLeft.x,
-                            bottomRight.y - topLeft.y);
+
+                g2.fillRect(
+                    topLeft.x,
+                    topLeft.y,
+                    bottomRight.x - topLeft.x,
+                    bottomRight.y - topLeft.y
+                );
+
                 g2.dispose();
 
                 super.paint(g, topLeft, bottomRight);
             }
         };
+
         addMapRectangle(selection);
 
         hasSelection = true;
+
+        if (boundingBoxListener != null) {
+            boundingBoxListener.accept(
+                new double[] { minLat, minLon, maxLat, maxLon }
+            );
+        }
+    }
+
+    public void setBoundingBox(double minLat, double minLon, double maxLat, double maxLon) {
+
+        this.minLat = Math.min(minLat, maxLat);
+        this.minLon = Math.min(minLon, maxLon);
+        this.maxLat = Math.max(minLat, maxLat);
+        this.maxLon = Math.max(minLon, maxLon);
+
+        startCoordinate = new Coordinate(this.minLat, this.minLon);
+        endCoordinate = new Coordinate(this.maxLat, this.maxLon);
+
+        updateSelection();
+
+        startCoordinate = null;
+        endCoordinate = null;
     }
 
     public boolean hasSelection() {
