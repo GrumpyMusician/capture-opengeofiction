@@ -12,7 +12,7 @@ import org.openstreetmap.gui.jmapviewer.interfaces.ICoordinate;
 import org.openstreetmap.gui.jmapviewer.interfaces.MapRectangle;
 import org.openstreetmap.gui.jmapviewer.tilesources.AbstractOsmTileSource;
 
-public class BoundingBoxMap extends JMapViewer {
+public class BoundingBoxMap extends JMapViewer{
 
     private Coordinate startCoordinate;
     private Coordinate endCoordinate;
@@ -24,22 +24,23 @@ public class BoundingBoxMap extends JMapViewer {
     private double maxLon;
 
     private boolean hasSelection = false;
+    private boolean isUnlocked = true;
 
     private Consumer<double[]> boundingBoxListener;
 
-    public void setBoundingBoxListener(Consumer<double[]> listener) {
+    public void setBoundingBoxListener(Consumer<double[]> listener){
         this.boundingBoxListener = listener;
     }
 
-    public BoundingBoxMap() {
+    public BoundingBoxMap(){
         AbstractOsmTileSource customTileSource =
             new AbstractOsmTileSource(
                 "Opengeofiction",
                 "https://tile.opengeofiction.net/ogf-carto/{z}/{x}/{y}.png",
                 "OGF/1.0"
-            ) {
+            ){
                 @Override
-                public String getTileUrl(int zoom, int tileX, int tileY) {
+                public String getTileUrl(int zoom, int tileX, int tileY){
                     return baseUrl
                         .replace("{z}", String.valueOf(zoom))
                         .replace("{x}", String.valueOf(tileX))
@@ -49,24 +50,28 @@ public class BoundingBoxMap extends JMapViewer {
 
         setTileSource(customTileSource);
 
-        MouseAdapter selectionHandler = new MouseAdapter() {
+        MouseAdapter selectionHandler = new MouseAdapter(){
 
             @Override
-            public void mousePressed(MouseEvent e) {
-                if (e.getButton() != MouseEvent.BUTTON1) {
+            public void mousePressed(MouseEvent e){
+                if (!isUnlocked){
+                    return;
+                }
+
+                if (e.getButton() != MouseEvent.BUTTON1){
                     return;
                 }
 
                 startCoordinate = toCoordinate(getPosition(e.getPoint()));
 
-                if (startCoordinate == null) {
+                if (startCoordinate == null){
                     return;
                 }
 
                 endCoordinate = startCoordinate;
                 hasSelection = false;
 
-                if (selection != null) {
+                if (selection != null){
                     removeMapRectangle(selection);
                     selection = null;
                 }
@@ -75,8 +80,8 @@ public class BoundingBoxMap extends JMapViewer {
             }
 
             @Override
-            public void mouseDragged(MouseEvent e) {
-                if (startCoordinate == null) {
+            public void mouseDragged(MouseEvent e){
+                if (startCoordinate == null){
                     return;
                 }
 
@@ -85,15 +90,15 @@ public class BoundingBoxMap extends JMapViewer {
             }
 
             @Override
-            public void mouseReleased(MouseEvent e) {
+            public void mouseReleased(MouseEvent e){
                 if (startCoordinate == null
-                        || e.getButton() != MouseEvent.BUTTON1) {
+                        || e.getButton() != MouseEvent.BUTTON1){
                     return;
                 }
 
                 endCoordinate = toCoordinate(getPosition(e.getPoint()));
 
-                if (endCoordinate != null) {
+                if (endCoordinate != null){
                     updateSelection();
                 }
 
@@ -105,8 +110,8 @@ public class BoundingBoxMap extends JMapViewer {
         addMouseMotionListener(selectionHandler);
     }
 
-    private Coordinate toCoordinate(ICoordinate coordinate) {
-        if (coordinate == null) {
+    private Coordinate toCoordinate(ICoordinate coordinate){
+        if (coordinate == null){
             return null;
         }
 
@@ -116,8 +121,8 @@ public class BoundingBoxMap extends JMapViewer {
         );
     }
 
-    private void updateSelection() {
-        if (startCoordinate == null || endCoordinate == null) {
+    private void updateSelection(){
+        if (startCoordinate == null || endCoordinate == null){
             return;
         }
 
@@ -144,7 +149,7 @@ public class BoundingBoxMap extends JMapViewer {
         Coordinate topLeft = new Coordinate(maxLat, minLon);
         Coordinate bottomRight = new Coordinate(minLat, maxLon);
 
-        if (selection != null) {
+        if (selection != null){
             removeMapRectangle(selection);
         }
 
@@ -160,12 +165,12 @@ public class BoundingBoxMap extends JMapViewer {
 
         selection = new MapRectangleImpl(
             null, null, topLeft, bottomRight, style
-        ) {
+        ){
             @Override
             public void paint(
                     java.awt.Graphics g,
                     java.awt.Point topLeft,
-                    java.awt.Point bottomRight) {
+                    java.awt.Point bottomRight){
 
                 java.awt.Graphics2D g2 =
                     (java.awt.Graphics2D) g.create();
@@ -189,14 +194,14 @@ public class BoundingBoxMap extends JMapViewer {
 
         hasSelection = true;
 
-        if (boundingBoxListener != null) {
+        if (boundingBoxListener != null){
             boundingBoxListener.accept(
-                new double[] { minLat, minLon, maxLat, maxLon }
+                new double[]{ minLat, minLon, maxLat, maxLon }
             );
         }
     }
 
-    public void setBoundingBox(double minLat, double minLon, double maxLat, double maxLon) {
+    public void setBoundingBox(double minLat, double minLon, double maxLat, double maxLon){
 
         this.minLat = Math.min(minLat, maxLat);
         this.minLon = Math.min(minLon, maxLon);
@@ -212,28 +217,32 @@ public class BoundingBoxMap extends JMapViewer {
         endCoordinate = null;
     }
 
-    public boolean hasSelection() {
+    public boolean hasSelection(){
         return hasSelection;
     }
 
-    public double getMinLat() {
+    public double getMinLat(){
         return minLat;
     }
 
-    public double getMinLon() {
+    public double getMinLon(){
         return minLon;
     }
 
-    public double getMaxLat() {
+    public double getMaxLat(){
         return maxLat;
     }
 
-    public double getMaxLon() {
+    public double getMaxLon(){
         return maxLon;
     }
 
-    public void clearSelection() {
-        if (selection != null) {
+    public void setLock(boolean lock){
+        this.isUnlocked = lock;
+    }
+
+    public void clearSelection(){
+        if (selection != null){
             removeMapRectangle(selection);
             selection = null;
         }
