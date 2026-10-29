@@ -1,24 +1,11 @@
 package com.captureogf;
 
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
-
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-
-import javax.imageio.ImageIO;
 import javax.swing.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.io.ByteArrayInputStream;
 
-import java.time.Duration;
-
-import java.util.concurrent.CancellationException;
 import java.util.Comparator;
 
 public class ImageHandler {
@@ -85,20 +72,37 @@ public class ImageHandler {
             return newFolderPath;
 
         } catch (IOException e) {
-            window.addOutput(
-                    "Error creating " + newFolder + ": " + e.getMessage(),
-                    true
-            );
+            terminate("Error creating " + newFolder + ": " + e.getMessage());
             return null;
         }
     }
 
     public void importImages(){
         this.window.setLabel("Downloading Images...");
+        SwingWorker<Void, Void> worker = new SwingWorker<>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                // Download images and perform filesystem operations here.
+                return null;
+            }
 
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    window.setLabel("Downloads complete.");
+                } catch (Exception e) {
+                    window.setLabel("Download failed.");
+                }
+            }
+        };
+
+        worker.execute();
     }
 
-    public void terminate(){
+    public void terminate(String message){
+        this.window.setLabel("Error");
+        this.window.addOutput(message);
         System.exit(0);
     }
 }
