@@ -9,7 +9,6 @@ import javax.swing.event.ChangeListener;
 import java.awt.*;
 import org.openstreetmap.gui.jmapviewer.Coordinate;
 
-
 public class OgfMapExtractor {
 
     JFrame frame = new JFrame("Capture OpenGeofiction");
@@ -55,21 +54,23 @@ public class OgfMapExtractor {
         JLabel zoomLabel = new JLabel("Zoom: " + String.valueOf(zoom.getValue()));
         configPanel.add(new JLabel("Previous"));
         configPanel.add(zoomLabel);
-        for (String label : new String[]{"Export Folder", "Export Config", "Number of Rows", "Number of Columns", "Next"}){
+        for (String label : new String[]{"Destination Folder", "Image Config", "Number of Rows", "Number of Columns", "Next"}){
             configPanel.add(new JLabel(label));
         }
         
         configPanel.add(prev);
         configPanel.add(zoom);
-        String[] configSet = {"One Image", "Grid"};
-        JComboBox<String> exportConfig = new JComboBox<>(configSet);
+        JButton directorySelect = new JButton("Select Folder");
+        configPanel.add(directorySelect);
+        String[] configSet = {"One Image", "Grid of Images"};
+        JComboBox<String> exportConfigMap = new JComboBox<>(configSet);
+        configPanel.add(exportConfigMap);
         JTextField numRows = new JTextField("1"), numCols = new JTextField("1");
         numRows.setEnabled(false);
         numCols.setEnabled(false);
-        configPanel.add(exportConfig);
         configPanel.add(numRows);
         configPanel.add(numCols);
-        
+
         configPanel.setBorder(border);
 
         /* 
@@ -112,6 +113,35 @@ public class OgfMapExtractor {
             }
         });
 
+        exportConfigMap.addActionListener(e -> {
+            if (exportConfigMap.getSelectedIndex() == 0){
+                numRows.setText("1");
+                numCols.setText("1");
+                numRows.setEnabled(false);
+                numCols.setEnabled(false);
+            } else {
+                numRows.setEnabled(true);
+                numCols.setEnabled(true);
+            }
+        });
+
+        directorySelect.addActionListener(e -> {
+            JFileChooser chooser = new JFileChooser();
+            chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            
+            chooser.setAcceptAllFileFilterUsed(false);
+            chooser.setDialogTitle("Select a Folder");
+            chooser.setCurrentDirectory(new java.io.File(System.getProperty("user.home")));
+            int result = chooser.showOpenDialog(null); 
+
+            if (result == JFileChooser.APPROVE_OPTION) {
+                java.io.File selectedFolder = chooser.getSelectedFile();
+                String folderPath = selectedFolder.getAbsolutePath();
+                
+                directorySelect.setText(folderPath);
+            }
+        });
+
         x1.addActionListener(e -> submitCoordinates(x1, y1, x2, y2));
         y1.addActionListener(e -> submitCoordinates(x1, y1, x2, y2));
         x2.addActionListener(e -> submitCoordinates(x1, y1, x2, y2));
@@ -127,6 +157,21 @@ public class OgfMapExtractor {
         });
         
         next.addActionListener(e -> {
+            if(!checkCoordinates(x1, y1, x2, y2)){
+                JOptionPane.showMessageDialog(frame, "Enter valid coordinates.");
+                return;
+            }
+
+            if(!checkGrid(numRows)){
+                JOptionPane.showMessageDialog(frame, "Number of rows and columns must be positive.");
+                return;
+            }
+
+            if (!checkDirectory(directorySelect) && stage.isConfigStage()){
+                JOptionPane.showMessageDialog(frame, "Select your destination folder.");
+                return;
+            }
+
             if (stage.isBoundingStage()){
                 configPanel.add(next);
                 frame.remove(bboxPanel);
@@ -135,22 +180,20 @@ public class OgfMapExtractor {
                 frame.repaint();
                 map.setLock(true);
             } else {
-
+                frame.remove(configPanel);
+                frame.revalidate();
+                frame.repaint();
             }
             stage.nextStage();
         });
 
         prev.addActionListener(e -> {
-            if (stage.isConfigStage()){
-                bboxPanel.add(next);
-                frame.remove(configPanel);
-                frame.add(bboxPanel, BorderLayout.SOUTH);
-                frame.revalidate();
-                frame.repaint();
-                map.setLock(false);
-            } else {
-
-            }
+            bboxPanel.add(next);
+            frame.remove(configPanel);
+            frame.add(bboxPanel, BorderLayout.SOUTH);
+            frame.revalidate();
+            frame.repaint();
+            map.setLock(false);
             stage.prevStage();
         });
 
@@ -168,7 +211,13 @@ public class OgfMapExtractor {
     }
 
     public void submitCoordinates(JTextField x1, JTextField y1, JTextField x2, JTextField y2){
-        try {map.setBoundingBox(
+        try {
+            x1.setText(String.valueOf(Math.max(-180.0, Math.min(180.0, Double.parseDouble(x1.getText())))));
+            y1.setText(String.valueOf(Math.max(-90.0, Math.min(90.0, Double.parseDouble(y1.getText())))));
+            x2.setText(String.valueOf(Math.max(-180.0, Math.min(180.0, Double.parseDouble(x2.getText())))));
+            y2.setText(String.valueOf(Math.max(-90.0, Math.min(90.0, Double.parseDouble(y2.getText())))));
+
+            map.setBoundingBox(
                 Double.parseDouble(y1.getText()),
                 Double.parseDouble(x1.getText()),
                 Double.parseDouble(y2.getText()),
@@ -179,12 +228,44 @@ public class OgfMapExtractor {
         }
     }
 
-    public void checkCoordinates(JTextField x1, JTextField y1, JTextField x2, JTextField y2){
+    public boolean checkCoordinates(JTextField x1, JTextField y1, JTextField x2, JTextField y2) {
+        try {
+            double x1Val = Double.parseDouble(x1.getText());
+            double y1Val = Double.parseDouble(y1.getText());
+            double x2Val = Double.parseDouble(x2.getText());
+            double y2Val = Double.parseDouble(y2.getText());
 
+            if ((y1Val >= -90 && y1Val <= 90) && 
+                (y2Val >= -90 && y2Val <= 90) && 
+                (x1Val >= -180 && x1Val <= 180) && 
+                (x2Val >= -180 && x2Val <= 180)) {
+                return true;
+            }
+            
+        } catch (NumberFormatException ex) {
+            return false;
+        }
+        
+        return false;
     }
 
-    public void checkGrid(JTextField value){
+    public boolean checkGrid(JTextField val) {
+        try {
+            int value = Integer.parseInt(val.getText());
+            
+            if (value >= 1) {
+                return true;
+            }
+            
+        } catch (NumberFormatException ex) {
+            return false;
+        }
+        
+        return false;
+    }
 
+    public boolean checkDirectory(JButton val){
+        return !val.getText().equals("Select Folder");
     }
 
     public static void main(String[] args) {
