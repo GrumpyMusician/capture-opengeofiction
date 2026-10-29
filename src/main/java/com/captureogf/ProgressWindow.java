@@ -49,20 +49,28 @@ public class ProgressWindow extends JPanel {
         progressLabel.setText(text);
     }
 
-    public void updateProgress(int progress) {
+    public void progress(int progress) {
         progressBar.setValue(progress);
     }
 
-    public void updateProgress(int progress, int maximum) {
+    public void progress(int progress, int maximum) {
         progressBar.setMaximum(maximum);
         progressBar.setValue(progress);
     }
 
-    public void addOutput(String text) {
-        addOutput(text, false);
+    public void notify(String text){
+        addOutput(text, true);
     }
 
-    public void addOutput(String text, boolean animate) {
+    public void report(String text) {
+        addOutput(text + ".", false);
+    }
+
+    public void buffer(){
+        addOutput("", false);
+    }
+
+    private void addOutput(String text, boolean animate) {
         finishAnimation();
 
         if (animate) {

@@ -195,7 +195,7 @@ public class OgfMapExtractor {
 
                 ImageHandler exportImage = new ImageHandler(Double.parseDouble(x1.getText()), Double.parseDouble(y1.getText()), Double.parseDouble(x2.getText()), Double.parseDouble(y2.getText()), zoom.getValue(), Integer.parseInt(numRows.getText()), Integer.parseInt(numCols.getText()), directorySelect.getText(), "https://tile.opengeofiction.net/ogf-carto/{z}/{x}/{y}.png");
                 exportImage.createWindow();
-                exportImage.createDestination("outputCaptureOGF");
+                exportImage.createDestination();
                 exportImage.importImages();
             }
             stage.nextStage();
