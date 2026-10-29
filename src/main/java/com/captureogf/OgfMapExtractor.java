@@ -173,17 +173,14 @@ public class OgfMapExtractor {
                 JOptionPane.showMessageDialog(frame, "Enter valid coordinates.");
                 return;
             }
-
             if(!checkGrid(numRows)){
                 JOptionPane.showMessageDialog(frame, "Number of rows and columns must be positive.");
                 return;
             }
-
             if (!checkDirectory(directorySelect) && stage.isConfigStage()){
                 JOptionPane.showMessageDialog(frame, "Select your destination folder.");
                 return;
             }
-
             if (stage.isBoundingStage()){
                 configPanel.add(next);
                 frame.remove(bboxPanel);
@@ -197,7 +194,9 @@ public class OgfMapExtractor {
                 frame.repaint();
 
                 ImageHandler exportImage = new ImageHandler(Double.parseDouble(x1.getText()), Double.parseDouble(y1.getText()), Double.parseDouble(x2.getText()), Double.parseDouble(y2.getText()), zoom.getValue(), Integer.parseInt(numRows.getText()), Integer.parseInt(numCols.getText()), directorySelect.getText(), "https://tile.opengeofiction.net/ogf-carto/{z}/{x}/{y}.png");
-
+                exportImage.createWindow();
+                exportImage.createDestination("outputCaptureOGF");
+                exportImage.importImages();
             }
             stage.nextStage();
         });
