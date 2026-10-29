@@ -1,12 +1,24 @@
 
 package com.captureogf;
 
-import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.GridLayout;
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JSlider;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.border.Border;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import java.awt.*;
 import org.openstreetmap.gui.jmapviewer.Coordinate;
 
 public class OgfMapExtractor {
@@ -131,7 +143,7 @@ public class OgfMapExtractor {
             
             chooser.setAcceptAllFileFilterUsed(false);
             chooser.setDialogTitle("Select a Folder");
-            chooser.setCurrentDirectory(new java.io.File(System.getProperty("user.home")));
+            chooser.setCurrentDirectory(new java.io.File(System.getProperty("user.home"), "Downloads"));
             int result = chooser.showOpenDialog(null); 
 
             if (result == JFileChooser.APPROVE_OPTION) {
@@ -183,6 +195,9 @@ public class OgfMapExtractor {
                 frame.remove(configPanel);
                 frame.revalidate();
                 frame.repaint();
+
+                ImageHandler exportImage = new ImageHandler(Double.parseDouble(x1.getText()), Double.parseDouble(y1.getText()), Double.parseDouble(x2.getText()), Double.parseDouble(y2.getText()), zoom.getValue(), Integer.parseInt(numRows.getText()), Integer.parseInt(numCols.getText()), directorySelect.getText(), "https://tile.opengeofiction.net/ogf-carto/{z}/{x}/{y}.png");
+
             }
             stage.nextStage();
         });
