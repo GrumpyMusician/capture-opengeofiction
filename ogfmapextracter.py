@@ -49,11 +49,12 @@ if not exit:
     numcols = int(input("> Number of Columns: "))
     print()
 
-    # YOU ARE HERE --------------------------------------------------------------------------------------------------
 
     downloads_dir = os.path.join(os.path.expanduser("~"), "Downloads")
     output_dir = os.path.join(downloads_dir, "ogf_z8_bbox")
     os.makedirs(output_dir, exist_ok=True)
+
+    # YOU ARE HERE --------------------------------------------------------------------------------------------------
 
     request_interval = 0.25
     next_request_time = time.time()

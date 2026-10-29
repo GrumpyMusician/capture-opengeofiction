@@ -1,13 +1,24 @@
 package com.captureogf;
 
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+
+import javax.imageio.ImageIO;
 import javax.swing.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.io.ByteArrayInputStream;
 
-import java.io.IOException;
-import java.nio.file.*;
+import java.time.Duration;
+
+import java.util.concurrent.CancellationException;
 import java.util.Comparator;
 
 public class ImageHandler {
@@ -38,44 +49,53 @@ public class ImageHandler {
         frame.setVisible(true);
     }
 
-    public Path createDestination(String newFolder){
-        this.window.setLabel("Setting up directories...");
-        this.window.updateProgress(0, 2);
-        try {
-            this.window.addOutput("Checking for existing folder " + newFolder, true);
+    
+    public Path createDestination(String newFolder) {
+        window.setLabel("Setting up directories...");
+        window.updateProgress(0, 2);
 
-            Path newFolderPath = destination.resolve(newFolder);
+        Path newFolderPath = destination.resolve(newFolder);
+
+        try {
+            window.addOutput("Checking for existing folder " + newFolder, true);
 
             if (Files.exists(newFolderPath)) {
-                this.window.addOutput("New folder found.");
-                this.window.addOutput("Removing existing folder " + newFolder, true);
+                window.addOutput("Existing folder found.", true);
+                window.addOutput("Removing existing folder " + newFolder, true);
 
                 try (var paths = Files.walk(newFolderPath)) {
-                    for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) {
+                    for (Path path : paths
+                            .sorted(Comparator.reverseOrder())
+                            .toList()) {
                         Files.delete(path);
                     }
                 }
             } else {
-                this.window.addOutput("No new folder found.");
+                window.addOutput("No existing folder found.", true);
             }
-            this.window.updateProgress(1);
-            
-            this.window.addOutput("Creating " + newFolder, true);
-            Files.createDirectories(newFolderPath);
-            this.window.addOutput("Folder " + newFolder + " created.\n");
-            this.window.updateProgress(2);
 
-            return Files.createDirectories(newFolderPath);
+            window.updateProgress(1);
+
+            window.addOutput("Creating " + newFolder, true);
+            Files.createDirectories(newFolderPath);
+
+            window.addOutput("Folder created successfully.\n", true);
+            window.updateProgress(2);
+
+            return newFolderPath;
+
         } catch (IOException e) {
-            this.window.addOutput("Error creating " + newFolder + ". Terminating", true);
-            terminate();
+            window.addOutput(
+                    "Error creating " + newFolder + ": " + e.getMessage(),
+                    true
+            );
+            return null;
         }
-        return null;
     }
 
     public void importImages(){
         this.window.setLabel("Downloading Images...");
-        
+
     }
 
     public void terminate(){
