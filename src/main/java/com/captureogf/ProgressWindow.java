@@ -42,7 +42,7 @@ public class ProgressWindow extends JPanel {
 
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        dotTimer = new Timer(400, e -> animateDots());
+        dotTimer = new Timer(200, e -> animateDots());
     }
 
     public void setLabel(String text) {
@@ -59,11 +59,15 @@ public class ProgressWindow extends JPanel {
     }
 
     public void notify(String text){
-        addOutput(text, true);
+        addOutput("[>] " + text, true);
     }
 
     public void report(String text) {
-        addOutput(text + ".", false);
+        addOutput("[?] " + text + ".", false);
+    }
+
+    public void alert(String text) {
+        addOutput("[!] " + text + ".", false);
     }
 
     public void buffer(){

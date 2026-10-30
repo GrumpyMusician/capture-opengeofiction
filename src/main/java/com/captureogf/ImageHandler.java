@@ -5,7 +5,6 @@ import java.io.IOException;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.URI;
@@ -21,7 +20,6 @@ import javax.swing.*;
 import java.awt.image.BufferedImage;
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
 
@@ -100,7 +98,7 @@ public class ImageHandler {
         window.setLabel("Downloading Images...");
 
         window.progress(0);
-        window.report("Building cookies");
+        window.notify("Building cookies");
         HttpClient session = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL)).build();
 
         SwingWorker<Void, Void> worker = new SwingWorker<>() {
@@ -141,7 +139,7 @@ public class ImageHandler {
                                     HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url)).header("User-Agent", "OGF-Extractor").timeout(Duration.ofSeconds(15)).GET().build();
                                     
                                     Random rand = new Random();
-                                    nextRequestTime += requestInterval + rand.nextDouble() * 0.04 - 0.02;
+                                    nextRequestTime += (long)((requestInterval + rand.nextDouble() * 0.04 - 0.02) * 1000);
 
                                     session.send(request, HttpResponse.BodyHandlers.ofFile(imagePath));
                                     
@@ -153,7 +151,7 @@ public class ImageHandler {
                                 }
                             }
                             if (flag){
-                                window.report("Failed to retrieve (" + i + ", " + j + ") after " + maxRetries + " failed attempts.");
+                                window.alert("Failed to retrieve (" + i + ", " + j + ") after " + maxRetries + " failed attempts.");
                             }
                         }
                         window.progress(numTilesDownloaded);
@@ -161,7 +159,7 @@ public class ImageHandler {
                             try {
                                 tiles.put(new Point(i, j), ImageIO.read(new File(imagePath.toString())));
                             } catch (IOException e){
-                                window.report("Error loading image: " + e.getMessage());
+                                window.alert("Error loading image: " + e.getMessage());
                             }
                         }
                     }
@@ -170,8 +168,6 @@ public class ImageHandler {
                 int tileDimen = 256;
                 int tilesPerChunkX = Math.floorDiv(xTileMax - xTileMin + 1, numCols);
                 int tilesPerChunkY = Math.floorDiv(yTileMax - yTileMin + 1, numRows);
-
-                System.out.println(xTileMax + ", " + xTileMin);
                 
                 int remainderX = (xTileMax - xTileMin + 1) % numCols;
                 int remainderY = (yTileMax - yTileMin + 1) % numRows;
@@ -181,18 +177,25 @@ public class ImageHandler {
                         int chunkWidthTiles = tilesPerChunkX + ((j == numCols - 1 && remainderX > 0) ? 1 : 0) * remainderX;
                         int chunkHeightTiles = tilesPerChunkY + ((i == numRows - 1 && remainderY > 0) ? 1 : 0) * remainderY;
 
-                        BufferedImage chunk = new BufferedImage(chunkWidthTiles, chunkHeightTiles, BufferedImage.TYPE_INT_RGB);
+                        BufferedImage chunk = new BufferedImage(chunkWidthTiles * tileDimen, chunkHeightTiles * tileDimen, BufferedImage.TYPE_INT_RGB);
                         Graphics2D g2d = chunk.createGraphics();
                         g2d.setColor(new Color(255, 255, 255));
                         g2d.fillRect(0, 0, chunkWidthTiles, chunkHeightTiles);
-                        g2d.dispose();
 
                         for (int di = 0; di < chunkWidthTiles; di++){
                             for (int dj = 0; dj < chunkHeightTiles; dj++){
                                 int chunkX = xTileMin + j * tilesPerChunkX + di;
                                 int chunkY = yTileMin + i * tilesPerChunkY + dj;
+                            
+                                if (tiles.containsKey(new Point(chunkX, chunkY))){
+                                    g2d.drawImage(tiles.get(new Point(chunkX, chunkY)), di * tileDimen, dj * tileDimen, null);
+                                }
                             }
                         }
+
+                        g2d.dispose();
+                        File filePath = destDir.resolve("result " + i + "_" + j + ".png").toFile();;
+                        ImageIO.write(chunk, "PNG", filePath);
                     }
                 }
 
@@ -206,7 +209,6 @@ public class ImageHandler {
                 } catch (Exception e) {
                     window.setLabel("Download failed.");
                     terminate("Download failed: " + e);
-                    System.out.println(e);
                 }
             }
         };
@@ -224,8 +226,8 @@ public class ImageHandler {
 
     public void terminate(String message){
         window.setLabel("Error");
-        window.notify("ERROR " + message);
-        window.report("Terminating program");
+        window.alert(message);
+        window.notify("Terminating program");
         Timer timer = new Timer(5000, e -> {
             System.exit(0);
         });

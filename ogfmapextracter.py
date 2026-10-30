@@ -161,11 +161,11 @@ if not exit:
             filename = os.path.join(output_folder, f"map_r{row}_c{col}.png")
             chunk.save(filename)
 
-    try:
-        shutil.rmtree(output_dir)
-        print(f"Temporary folder '{output_dir}' deleted.")
-    except Exception as e:
-        print(f"Could not delete temp folder: {e}")
+    # try:
+    #     shutil.rmtree(output_dir)
+    #     print(f"Temporary folder '{output_dir}' deleted.")
+    # except Exception as e:
+    #     print(f"Could not delete temp folder: {e}")
 
     print(f"\nGrid images saved in: {output_folder}!")
     print("Thanks for using the OGF Map Extracter. Made with ❤️  and ☕ by ParrotMan.\n")

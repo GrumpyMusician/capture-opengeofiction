@@ -63,6 +63,7 @@ public class OgfMapExtractor {
         */
         JPanel configPanel = new JPanel(new GridLayout(2, 7, 5, 5));
         JSlider zoom = new JSlider(0, 19);
+        zoom.setValue(8);
         JLabel zoomLabel = new JLabel("Zoom: " + String.valueOf(zoom.getValue()));
         configPanel.add(new JLabel("Previous"));
         configPanel.add(zoomLabel);
