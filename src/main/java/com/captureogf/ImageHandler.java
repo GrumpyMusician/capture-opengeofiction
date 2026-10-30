@@ -1,10 +1,11 @@
 package com.captureogf;
 
+import java.io.File;
 import java.io.IOException;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-
+import java.nio.file.Paths;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.URI;
@@ -14,12 +15,14 @@ import java.net.http.HttpResponse;
 
 import java.time.Duration;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 
 import java.awt.image.BufferedImage;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Random;
 
 public class ImageHandler {
@@ -80,7 +83,7 @@ public class ImageHandler {
             window.progress(2);
 
             window.notify("Creating directory for tiles");
-            tempDir = destDir.resolve("Temporary Tiles");
+            tempDir = destDir.resolve("Tiles");
             Files.createDirectory(tempDir);
             window.progress(3);
             window.buffer();
@@ -98,7 +101,6 @@ public class ImageHandler {
 
         window.progress(0);
         window.report("Building cookies");
-        
         HttpClient session = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL)).build();
 
         SwingWorker<Void, Void> worker = new SwingWorker<>() {
@@ -108,21 +110,22 @@ public class ImageHandler {
                 long nextRequestTime = System.currentTimeMillis();
                 int maxRetries = 5;
 
-                int xTileMin = getXTile(x1);
-                int xTileMax = getXTile(x2);
+                int xTileMax = getXTile(x1);
+                int xTileMin = getXTile(x2);
                 int yTileMin = getYTile(y1);
                 int yTileMax = getYTile(y2);
 
-                ArrayList<Point> tiles = new ArrayList<>();
+                HashMap<Point, BufferedImage> tiles = new HashMap<>();
                 int totalTiles = ((xTileMax - xTileMin) + 1) * ((yTileMax - yTileMin) + 1);
                 int numTilesDownloaded = 0;
                 
-                window.progress(1, totalTiles + 1); // cookies into account
+                window.progress(1, totalTiles); // cookies into account
                 
                 for (int i = xTileMin; i <= xTileMax; i++) {
                     for (int j = yTileMin; j <= yTileMax; j++) {
-                        Path path = tempDir.resolve(i + "_" + j + ".png");
-                        if (Files.exists(path)){
+                        window.notify("Retrieving (" + i + ", " + j + ")");
+                        Path imagePath = tempDir.resolve(i + "_" + j + ".png");
+                        if (Files.exists(imagePath)){
                             numTilesDownloaded++;
                         } else {
                             boolean flag = true;
@@ -133,14 +136,14 @@ public class ImageHandler {
                                         Thread.sleep(nextRequestTime - now);
                                     }
 
-                                    url = "https://tile.opengeofiction.net/ogf-carto/{" + zoom + "}/{" + i + "}/{" + j + "}.png";
+                                    url = "https://tile.opengeofiction.net/ogf-carto/" + zoom + "/" + i + "/" + j + ".png";
                                     
                                     HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url)).header("User-Agent", "OGF-Extractor").timeout(Duration.ofSeconds(15)).GET().build();
                                     
                                     Random rand = new Random();
                                     nextRequestTime += requestInterval + rand.nextDouble() * 0.04 - 0.02;
 
-                                    session.send(request, HttpResponse.BodyHandlers.ofFile(path));
+                                    session.send(request, HttpResponse.BodyHandlers.ofFile(imagePath));
                                     
                                     numTilesDownloaded ++;
                                     flag = false;
@@ -154,11 +157,11 @@ public class ImageHandler {
                             }
                         }
                         window.progress(numTilesDownloaded);
-                        if (Files.exists(path)){
+                        if (Files.exists(imagePath)){
                             try {
-                                tiles.add(new Point(i, j));
-                            } except (){
-
+                                tiles.put(new Point(i, j), ImageIO.read(new File(imagePath.toString())));
+                            } catch (IOException e){
+                                window.report("Error loading image: " + e.getMessage());
                             }
                         }
                     }
@@ -167,6 +170,8 @@ public class ImageHandler {
                 int tileDimen = 256;
                 int tilesPerChunkX = Math.floorDiv(xTileMax - xTileMin + 1, numCols);
                 int tilesPerChunkY = Math.floorDiv(yTileMax - yTileMin + 1, numRows);
+
+                System.out.println(xTileMax + ", " + xTileMin);
                 
                 int remainderX = (xTileMax - xTileMin + 1) % numCols;
                 int remainderY = (yTileMax - yTileMin + 1) % numRows;
@@ -193,7 +198,6 @@ public class ImageHandler {
 
                 return null;
             }
-
             @Override
             protected void done() {
                 try {
@@ -201,6 +205,8 @@ public class ImageHandler {
                     window.setLabel("Downloads complete.");
                 } catch (Exception e) {
                     window.setLabel("Download failed.");
+                    terminate("Download failed: " + e);
+                    System.out.println(e);
                 }
             }
         };
