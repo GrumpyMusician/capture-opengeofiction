@@ -1,11 +1,26 @@
 package com.captureogf;
 
-import javax.swing.*;
-
 import java.io.IOException;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+
+import java.net.CookieManager;
+import java.net.CookiePolicy;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+
+import java.time.Duration;
+
+import javax.swing.*;
+
+import java.awt.image.BufferedImage;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.util.ArrayList;
+import java.util.Random;
 
 public class ImageHandler {
     private double x1, y1, x2, y2;
@@ -13,6 +28,7 @@ public class ImageHandler {
     private String url;
     private Path baseDir, destDir, tempDir;
     private ProgressWindow window = new ProgressWindow();
+    public record Point(int x, int y) {};
 
     public ImageHandler(double x1, double y1, double x2, double y2, int zoom, int numRows, int numCols, String destDir, String url){
         this.x1 = x1;
@@ -79,15 +95,125 @@ public class ImageHandler {
 
     public void importImages(){
         window.setLabel("Downloading Images...");
+
+        window.progress(0);
+        window.report("Building cookies");
+        
+        HttpClient session = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL)).build();
+
         SwingWorker<Void, Void> worker = new SwingWorker<>() {
             @Override
             protected Void doInBackground() throws Exception {
-                // Download images and perform filesystem operations here.
+                double requestInterval = 0.25;
+                long nextRequestTime = System.currentTimeMillis();
+                int maxRetries = 5;
+
+                int xTileMin = getXTile(x1);
+                int xTileMax = getXTile(x2);
+                int yTileMin = getYTile(y1);
+                int yTileMax = getYTile(y2);
+
+                ArrayList<Point> tiles = new ArrayList<>();
+                int totalTiles = ((xTileMax - xTileMin) + 1) * ((yTileMax - yTileMin) + 1);
+                int numTilesDownloaded = 0;
+                
+                window.progress(1, totalTiles + 1); // cookies into account
+                
+                for (int i = xTileMin; i <= xTileMax; i++) {
+                    for (int j = yTileMin; j <= yTileMax; j++) {
+                        Path path = tempDir.resolve(i + "_" + j + ".png");
+                        if (Files.exists(path)){
+                            numTilesDownloaded++;
+                        } else {
+                            boolean flag = true;
+                            for (int k = 0; k < maxRetries; k++){
+                                try {
+                                    long now = System.currentTimeMillis();
+                                    if (now < nextRequestTime){
+                                        Thread.sleep(nextRequestTime - now);
+                                    }
+
+                                    url = "https://tile.opengeofiction.net/ogf-carto/{" + zoom + "}/{" + i + "}/{" + j + "}.png";
+                                    
+                                    HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url)).header("User-Agent", "OGF-Extractor").timeout(Duration.ofSeconds(15)).GET().build();
+                                    
+                                    Random rand = new Random();
+                                    nextRequestTime += requestInterval + rand.nextDouble() * 0.04 - 0.02;
+
+                                    session.send(request, HttpResponse.BodyHandlers.ofFile(path));
+                                    
+                                    numTilesDownloaded ++;
+                                    flag = false;
+                                    break;
+                                } catch(IOException e) {
+                                    window.notify("Failed to retrieve (" + i + ", " + j + "). Retrying");
+                                }
+                            }
+                            if (flag){
+                                window.report("Failed to retrieve (" + i + ", " + j + ") after " + maxRetries + " failed attempts.");
+                            }
+                        }
+                        window.progress(numTilesDownloaded);
+                        if (Files.exists(path)){
+                            try {
+                                tiles.add(new Point(i, j));
+                            } except (){
+
+                            }
+                        }
+                    }
+                }
+
+                int tileDimen = 256;
+                int tilesPerChunkX = Math.floorDiv(xTileMax - xTileMin + 1, numCols);
+                int tilesPerChunkY = Math.floorDiv(yTileMax - yTileMin + 1, numRows);
+                
+                int remainderX = (xTileMax - xTileMin + 1) % numCols;
+                int remainderY = (yTileMax - yTileMin + 1) % numRows;
+
+                for (int i = 0; i < numRows; i++){
+                    for (int j = 0; j < numCols; j++){
+                        int chunkWidthTiles = tilesPerChunkX + ((j == numCols - 1 && remainderX > 0) ? 1 : 0) * remainderX;
+                        int chunkHeightTiles = tilesPerChunkY + ((i == numRows - 1 && remainderY > 0) ? 1 : 0) * remainderY;
+
+                        BufferedImage chunk = new BufferedImage(chunkWidthTiles, chunkHeightTiles, BufferedImage.TYPE_INT_RGB);
+                        Graphics2D g2d = chunk.createGraphics();
+                        g2d.setColor(new Color(255, 255, 255));
+                        g2d.fillRect(0, 0, chunkWidthTiles, chunkHeightTiles);
+                        g2d.dispose();
+
+                        for (int di = 0; di < chunkWidthTiles; di++){
+                            for (int dj = 0; dj < chunkHeightTiles; dj++){
+                                int chunkX = xTileMin + j * tilesPerChunkX + di;
+                                int chunkY = yTileMin + i * tilesPerChunkY + dj;
+                            }
+                        }
+                    }
+                }
+
                 return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    window.setLabel("Downloads complete.");
+                } catch (Exception e) {
+                    window.setLabel("Download failed.");
+                }
             }
         };
 
         worker.execute();
+    }
+
+    private int getXTile(double lon){
+        return (int) ((lon + 180.0) / 360.0 * ((int) Math.pow(2, zoom)));
+    }
+
+    private int getYTile(double lat){
+        return (int) ((1.0 - Math.log(Math.tan(Math.toRadians(lat)) + (1 / Math.cos(Math.toRadians(lat)))) / Math.PI) / 2.0 * ((int) Math.pow(2, zoom)));
     }
 
     public void terminate(String message){
