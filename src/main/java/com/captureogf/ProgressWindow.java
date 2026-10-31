@@ -58,16 +58,29 @@ public class ProgressWindow extends JPanel {
         progressBar.setValue(progress);
     }
 
+    public void progress(int maximum, boolean setMax){
+        if (setMax){
+            progressBar.setMaximum(maximum);
+        }
+        else {
+            progress(maximum);
+        }
+    }
+
     public void notify(String text){
         addOutput("[>] " + text, true);
     }
 
     public void report(String text) {
-        addOutput("[?] " + text + ".", false);
+        addOutput("[!] " + text + ".", false);
+    }
+
+    public void report(String text, String endString) {
+        addOutput("[!] " + text + endString, false);
     }
 
     public void alert(String text) {
-        addOutput("[!] " + text + ".", false);
+        addOutput("[⚠] " + text + ".", false);
     }
 
     public void buffer(){

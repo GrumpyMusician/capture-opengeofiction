@@ -97,10 +97,6 @@ public class ImageHandler {
     public void importImages(){
         window.setLabel("Downloading Images...");
 
-        window.progress(0);
-        window.notify("Building cookies");
-        HttpClient session = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL)).build();
-
         SwingWorker<Void, Void> worker = new SwingWorker<>() {
             @Override
             protected Void doInBackground() throws Exception {
@@ -117,6 +113,16 @@ public class ImageHandler {
                 int totalTiles = ((xTileMax - xTileMin) + 1) * ((yTileMax - yTileMin) + 1);
                 int numTilesDownloaded = 0;
                 
+                window.progress(0, 1);
+                window.report("Welcome to Capture-Opengeofiction");
+                window.report("To terminate this program, click the close window button");
+                window.notify("The download process will begin shortly");
+                window.buffer();
+                
+                Thread.sleep(5000);
+                
+                window.notify("Building cookies");
+                HttpClient session = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL)).build();
                 window.progress(1, totalTiles); // cookies into account
                 
                 for (int i = xTileMin; i <= xTileMax; i++) {
@@ -172,10 +178,17 @@ public class ImageHandler {
                 int remainderX = (xTileMax - xTileMin + 1) % numCols;
                 int remainderY = (yTileMax - yTileMin + 1) % numRows;
 
+                window.setLabel("Stitching Tiles Together...");
+                window.progress(0);
+                window.buffer();
+
+                int counter = 0;
                 for (int i = 0; i < numRows; i++){
                     for (int j = 0; j < numCols; j++){
                         int chunkWidthTiles = tilesPerChunkX + ((j == numCols - 1 && remainderX > 0) ? 1 : 0) * remainderX;
                         int chunkHeightTiles = tilesPerChunkY + ((i == numRows - 1 && remainderY > 0) ? 1 : 0) * remainderY;
+
+                        window.progress(numRows * numCols * chunkWidthTiles * chunkHeightTiles, true);
 
                         BufferedImage chunk = new BufferedImage(chunkWidthTiles * tileDimen, chunkHeightTiles * tileDimen, BufferedImage.TYPE_INT_RGB);
                         Graphics2D g2d = chunk.createGraphics();
@@ -184,12 +197,15 @@ public class ImageHandler {
 
                         for (int di = 0; di < chunkWidthTiles; di++){
                             for (int dj = 0; dj < chunkHeightTiles; dj++){
+                                counter++;
                                 int chunkX = xTileMin + j * tilesPerChunkX + di;
                                 int chunkY = yTileMin + i * tilesPerChunkY + dj;
                             
                                 if (tiles.containsKey(new Point(chunkX, chunkY))){
+                                    window.notify("Drawing image onto (" + chunkX + ", " + chunkY + ")");
                                     g2d.drawImage(tiles.get(new Point(chunkX, chunkY)), di * tileDimen, dj * tileDimen, null);
                                 }
+                                window.progress(counter);
                             }
                         }
 
@@ -206,6 +222,18 @@ public class ImageHandler {
                 try {
                     get();
                     window.setLabel("Downloads complete.");
+                    window.buffer();
+                    window.report("Image successfully saved in", ":");
+                    window.report(destDir.toString(), "");
+                    window.report("Thank you for using Capture Geofiction");
+                    window.report("Made with ❤️ and ☕ by ParrotMan");
+                    window.buffer();
+                    window.notify("Program will automatically close in 10 seconds");
+                    Timer timer = new Timer(10000, e -> {
+                        System.exit(0);
+                    });
+                    timer.setRepeats(false);
+                    timer.start();
                 } catch (Exception e) {
                     window.setLabel("Download failed.");
                     terminate("Download failed: " + e);
