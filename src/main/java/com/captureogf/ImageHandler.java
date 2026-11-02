@@ -5,6 +5,7 @@ import java.io.IOException;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.URI;
@@ -54,7 +55,7 @@ public class ImageHandler {
         frame.setVisible(true);
     }
 
-    public void createDestination() {
+    private void createDestination() {
         window.setLabel("Setting up directories...");
         window.progress(0, 3);
 
@@ -95,8 +96,6 @@ public class ImageHandler {
     }
 
     public void importImages(){
-        window.setLabel("Downloading Images...");
-
         SwingWorker<Void, Void> worker = new SwingWorker<>() {
             @Override
             protected Void doInBackground() throws Exception {
@@ -114,17 +113,21 @@ public class ImageHandler {
                 int numTilesDownloaded = 0;
                 
                 window.progress(0, 1);
-                window.report("Welcome to Capture-Opengeofiction");
+                window.setLabel("Greeting Human...");
+                window.report("Welcome to Capture Opengeofiction");
                 window.report("To terminate this program, click the close window button");
                 window.notify("The download process will begin shortly");
                 window.buffer();
                 
                 Thread.sleep(5000);
+
+                createDestination();
                 
                 window.notify("Building cookies");
                 HttpClient session = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL)).build();
-                window.progress(1, totalTiles); // cookies into account
-                
+                window.progress(1, totalTiles + 1); // cookies into account
+
+                window.setLabel("Downloading Images...");
                 for (int i = xTileMin; i <= xTileMax; i++) {
                     for (int j = yTileMin; j <= yTileMax; j++) {
                         window.notify("Retrieving (" + i + ", " + j + ")");
@@ -170,6 +173,56 @@ public class ImageHandler {
                         }
                     }
                 }
+
+                // Verify that all tiles are here
+                window.buffer();
+                window.setLabel("Verifying tiles...");
+                window.progress(0, totalTiles);
+                int numTilesVerified = 0;
+                for (int i = xTileMin; i <= xTileMax; i++) {
+                    for (int j = yTileMin; j <= yTileMax; j++) {
+
+                        window.notify("Verifying (" + i + ", " + j + ")");
+                        Path imagePath = tempDir.resolve(i + "_" + j + ".png");
+
+                        if (!Files.exists(imagePath) && Files.isRegularFile(imagePath)) {
+                            window.alert("Verification Failed: (" + i + ", " + j + ")");
+                            window.notify("Retrieving (" + i + ", " + j + ")");
+                            if (Files.exists(imagePath)){
+                                numTilesVerified++;
+                            } else {
+                                boolean flag = true;
+                                for (int k = 0; k < maxRetries; k++){
+                                    try {
+                                        long now = System.currentTimeMillis();
+                                        if (now < nextRequestTime){
+                                            Thread.sleep(nextRequestTime - now);
+                                        }
+
+                                        url = "https://tile.opengeofiction.net/ogf-carto/" + zoom + "/" + i + "/" + j + ".png";
+                                        
+                                        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url)).header("User-Agent", "OGF-Extractor").timeout(Duration.ofSeconds(15)).GET().build();
+                                        
+                                        Random rand = new Random();
+                                        nextRequestTime += (long)((requestInterval + rand.nextDouble() * 0.04 - 0.02) * 1000);
+
+                                        session.send(request, HttpResponse.BodyHandlers.ofFile(imagePath));
+                                        
+                                        flag = false;
+                                        break;
+                                    } catch(IOException e) {
+                                        window.notify("Failed to retrieve (" + i + ", " + j + "). Retrying");
+                                    }
+                                }
+                                if (flag){
+                                    window.alert("Failed to retrieve (" + i + ", " + j + ") after " + maxRetries + " failed attempts.");
+                                }
+                            }
+                        }
+                        window.progress(numTilesVerified);
+                    }
+                }
+
 
                 int tileDimen = 256;
                 int tilesPerChunkX = Math.floorDiv(xTileMax - xTileMin + 1, numCols);
